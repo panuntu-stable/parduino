@@ -23,7 +23,7 @@ const int maxSteps = stepsPerRevilution * 2;
 
 //Stepping motor definitions
 long currentPos = maxSteps/2;
-long targetPos = 0;
+long targetPos = maxSteps/2;
 volatile long PulsesSteering = 0;
 int PulseWidth = 0;
 
@@ -64,10 +64,11 @@ void setup() {
 	pinMode(dirPin, OUTPUT);
 	pinMode(enablePin, OUTPUT);
   pinMode(brkPin, OUTPUT);
-  digitalWrite(brkPin, LOW);
 	digitalWrite(enablePin, LOW); // Enabling controller by default
 	attachInterrupt(digitalPinToInterrupt(pwmSteer), PulseSteerTimer, CHANGE);
   attachInterrupt(digitalPinToInterrupt(pwmThrottle), PulseThrottleTimer,CHANGE);
+  stepper.setCurrent(currentPos);//Centering 
+
 
   //Beginning IIC comunication
   dac.begin(0x61);
@@ -77,7 +78,7 @@ void setup() {
 	stepper.setRunMode(FOLLOW_POS);
 	stepper.setMaxSpeed(4000);
 	stepper.setAcceleration(4000);// 0 means instantly maximum speed
-	stepper.setCurrent(currentPos);//Centering 
+	
 
   //Setting and enabling task
   runner.addTask(stepperTask);
@@ -87,10 +88,11 @@ void setup() {
 
 //Main loop function
 void loop() {
-  Serial.println(throttleVolt);
+  Serial.println(currentPos);
   //Execute task if 1ms passed
   runner.execute();
 
+  
   // Checking if pulses correct and mapping it to targetPos
 	if (PulsesSteering >= 1100 && PulsesSteering <= 1900) {
 	  targetPos = map(PulsesSteering, 1090, 1910, minSteps, maxSteps);
@@ -105,6 +107,8 @@ void loop() {
   if (PulsesThrottle >= 1100 && PulsesThrottle <=1900) {
     if (PulsesThrottle >= 1550) { 
       throttleVolt = map(PulsesThrottle, 1600, 1910, 0, 4095);
+      digitalWrite(brkPin, LOW);
+
       }
     else {
       digitalWrite(brkPin, HIGH);
